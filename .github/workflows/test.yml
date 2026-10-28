@@ -10,12 +10,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             venv
@@ -28,8 +28,9 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
+          pip install --upgrade pip
           pip install -r requirements.txt
-          playwright install
+          playwright install --with-deps
 
       - name: Run tests
         run: |
@@ -69,7 +70,7 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}x
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: docker/build-push-action@v5
@@ -80,4 +81,4 @@ jobs:
             vrv7222/601_module8:${{ github.sha }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=registry,ref=vrv7222/601_module8:cache
-          cache-to: type=inline,mode=max
+          cache-to: type=registry,ref=vrv7222/601_module8:cache,mode=max
