@@ -1,19 +1,27 @@
-# main.py
-
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, Field, field_validator  # Use @validator for Pydantic 1.x
+from pydantic import BaseModel, Field, field_validator
 from fastapi.exceptions import RequestValidationError
-from app.operations import add, subtract, multiply, divide  # Ensure correct import path
+from app.operations import add, subtract, multiply, divide
+from fastapi import Response
 import uvicorn
 import logging
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
+# Setup structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 logger = logging.getLogger(__name__)
 
+# Initialize FastAPI FIRST
 app = FastAPI()
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
+
 
 # Setup templates directory
 templates = Jinja2Templates(directory="templates")
@@ -23,7 +31,7 @@ class OperationRequest(BaseModel):
     a: float = Field(..., description="The first number")
     b: float = Field(..., description="The second number")
 
-    @field_validator('a', 'b')  # Correct decorator for Pydantic 1.x
+    @field_validator('a', 'b')
     def validate_numbers(cls, value):
         if not isinstance(value, (int, float)):
             raise ValueError('Both a and b must be numbers.')
@@ -48,7 +56,6 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    # Extracting error messages
     error_messages = "; ".join([f"{err['loc'][-1]}: {err['msg']}" for err in exc.errors()])
     logger.error(f"ValidationError on {request.url.path}: {error_messages}")
     return JSONResponse(
@@ -70,6 +77,7 @@ async def add_route(operation: OperationRequest):
     """
     try:
         result = add(operation.a, operation.b)
+        logger.info(f"Successful addition: {operation.a} + {operation.b} = {result}")
         return OperationResponse(result=result)
     except Exception as e:
         logger.error(f"Add Operation Error: {str(e)}")
@@ -82,6 +90,7 @@ async def subtract_route(operation: OperationRequest):
     """
     try:
         result = subtract(operation.a, operation.b)
+        logger.info(f"Successful subtraction: {operation.a} - {operation.b} = {result}")
         return OperationResponse(result=result)
     except Exception as e:
         logger.error(f"Subtract Operation Error: {str(e)}")
@@ -94,6 +103,7 @@ async def multiply_route(operation: OperationRequest):
     """
     try:
         result = multiply(operation.a, operation.b)
+        logger.info(f"Successful multiplication: {operation.a} * {operation.b} = {result}")
         return OperationResponse(result=result)
     except Exception as e:
         logger.error(f"Multiply Operation Error: {str(e)}")
@@ -106,6 +116,7 @@ async def divide_route(operation: OperationRequest):
     """
     try:
         result = divide(operation.a, operation.b)
+        logger.info(f"Successful division: {operation.a} / {operation.b} = {result}")
         return OperationResponse(result=result)
     except ValueError as e:
         logger.error(f"Divide Operation Error: {str(e)}")
